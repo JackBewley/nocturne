@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { extractColorsFromImageUrl } from "../utils/colorExtractor";
+import {
+  extractColorsFromImageUrl,
+  extractColorsFromImageData,
+} from "../utils/colorExtractor";
 import { normalizeInlineImageSource } from "../utils/imageSource";
 import { useImageLoader } from "./useImageLoader";
 
@@ -369,7 +372,10 @@ export function useGradientTransition(activeSection: string | null) {
           ];
       } else if (isColorArray) {
         try {
-          newColorsForImageSection = filterColors(imageUrlOrColors);
+          newColorsForImageSection =
+            imageSection === "nowPlaying"
+              ? imageUrlOrColors
+              : filterColors(imageUrlOrColors);
         } catch (error) {
           console.error("Error filtering provided colors:", error);
           newColorsForImageSection = [
@@ -385,7 +391,11 @@ export function useGradientTransition(activeSection: string | null) {
           const normalizedImageUrl =
             normalizeInlineImageSource(imageUrlOrColors);
           if (!normalizedImageUrl) throw new Error("Image URL is empty");
-          const cached = _colorCache.get(normalizedImageUrl);
+          const cacheKey =
+            imageSection === "nowPlaying"
+              ? `playback:${normalizedImageUrl}`
+              : normalizedImageUrl;
+          const cached = _colorCache.get(cacheKey);
           if (cached && Date.now() - cached.timestamp < COLOR_CACHE_TTL) {
             newColorsForImageSection = cached.filteredColors;
           } else {
@@ -400,18 +410,28 @@ export function useGradientTransition(activeSection: string | null) {
 
             let extracted;
             if (isLocalUrl) {
-              extracted = await extractColorsFromImageUrl(normalizedImageUrl);
+              extracted = await extractColorsFromImageUrl(
+                normalizedImageUrl,
+                undefined,
+                imageSection === "nowPlaying",
+              );
             } else {
               const imageResult = await loadImage(normalizedImageUrl, 1, true);
-              extracted = imageResult.colors;
+              extracted =
+                imageSection === "nowPlaying" && imageResult.data
+                  ? await extractColorsFromImageData(imageResult.data, true)
+                  : imageResult.colors;
             }
 
             if (!extracted) {
               throw new Error("No colors extracted from image");
             }
 
-            newColorsForImageSection = filterColors(extracted);
-            _colorCache.set(normalizedImageUrl, {
+            newColorsForImageSection =
+              imageSection === "nowPlaying"
+                ? extracted
+                : filterColors(extracted);
+            _colorCache.set(cacheKey, {
               filteredColors: newColorsForImageSection,
               timestamp: Date.now(),
             });

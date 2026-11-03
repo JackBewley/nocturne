@@ -1,3 +1,4 @@
+import { extractPlaybackColor } from "./playbackGradient";
 type ColorPalette = [string, string, string, string] | string[];
 type ImageFetchResult = { data?: ImageInput };
 type ImageInput = string | ArrayBuffer | Uint8Array;
@@ -14,15 +15,16 @@ export async function extractColorsFromImageUrl(
   fetchImageFn?: (
     imageUrl: string,
   ) => Promise<ImageFetchResult | null | undefined>,
+  dominant = false,
 ): Promise<ColorPalette> {
   if (!fetchImageFn) {
-    return extractColorsFromImage(imageUrl);
+    return extractColorsFromImage(imageUrl, dominant);
   }
 
   try {
     const result = await fetchImageFn(imageUrl);
     return result?.data
-      ? await extractColorsFromImageData(result.data)
+      ? await extractColorsFromImageData(result.data, dominant)
       : FALLBACK_COLORS;
   } catch (error) {
     console.error("Error extracting colors from websocket image:", error);
@@ -32,13 +34,18 @@ export async function extractColorsFromImageUrl(
 
 export function extractColorsFromImage(
   imageUrl: string,
+  dominant = false,
 ): Promise<ColorPalette> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
       try {
-        resolve(extractColorsFromCanvasImage(img));
+        resolve(
+          dominant
+            ? [extractPlaybackColor(img)]
+            : extractColorsFromCanvasImage(img),
+        );
       } catch (err) {
         resolve(FALLBACK_COLORS);
         console.error("Error extracting colors:", err);
@@ -55,6 +62,7 @@ export function extractColorsFromImage(
 
 export function extractColorsFromImageData(
   imageData: ImageInput,
+  dominant = false,
 ): Promise<ColorPalette> {
   return new Promise((resolve) => {
     try {
@@ -63,7 +71,9 @@ export function extractColorsFromImageData(
 
       img.onload = () => {
         try {
-          const colors = extractColorsFromCanvasImage(img);
+          const colors = dominant
+            ? [extractPlaybackColor(img)]
+            : extractColorsFromCanvasImage(img);
           if (objectUrl) {
             URL.revokeObjectURL(objectUrl);
           }

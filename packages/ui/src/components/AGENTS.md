@@ -122,3 +122,5 @@ A terminal artwork failure is scoped to the current Spotify readiness period. Wh
 - **Phone app launch toggle**: General > Open Phone App uses the shared daemon-backed preference, without a subscription or connected-phone gate. Disable it while loading or saving, show load/save errors, and describe foreground on connect versus background operation. This does not disable companion data.
 
 Now Playing background experiment: `GradientBackground` uses `utils/playbackGradient.ts` for an opaque, low-contrast vertical artwork tint only when section is `nowPlaying`. Other sections retain the mesh gradient.
+
+`SpotifyImage.playbackColor` samples the successfully loaded image for Now Playing. Keep the existing `extractColors` path for other screens.

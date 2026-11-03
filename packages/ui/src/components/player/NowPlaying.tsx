@@ -1263,7 +1263,7 @@ function NowPlaying({
                 width={280}
                 height={280}
                 priority={100}
-                extractColors={true}
+                playbackColor={true}
                 onColorsExtracted={handleColorsExtracted}
                 fallbackSrc="/images/not-playing.webp"
                 useDirectUrl={

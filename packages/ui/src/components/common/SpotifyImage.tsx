@@ -1,3 +1,4 @@
+import { extractPlaybackColor } from "../../utils/playbackGradient";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CSSProperties, ImgHTMLAttributes } from "react";
 import { useImageLoader } from "../../hooks/useImageLoader";
@@ -67,6 +68,7 @@ interface SpotifyImageProps extends Omit<
   onLoad?: () => void;
   onError?: (error: Error) => void;
   extractColors?: boolean;
+  playbackColor?: boolean;
   onColorsExtracted?: (colors: string[]) => void;
   useDirectUrl?: boolean;
   skipFetchWhenNowPlaying?: boolean;
@@ -84,6 +86,7 @@ export default function SpotifyImage({
   onLoad,
   onError,
   extractColors = false,
+  playbackColor = false,
   onColorsExtracted,
   useDirectUrl = false,
   skipFetchWhenNowPlaying = false,
@@ -277,7 +280,7 @@ export default function SpotifyImage({
 
       const { data: imageData, colors } = result;
 
-      if (colors && onColorsExtracted) {
+      if (colors && onColorsExtracted && !playbackColor) {
         onColorsExtracted(colors);
       }
 
@@ -366,6 +369,7 @@ export default function SpotifyImage({
     loadImage,
     priority,
     extractColors,
+    playbackColor,
     fallbackSrc,
     hasImageFailed,
     onLoad,
@@ -463,12 +467,34 @@ export default function SpotifyImage({
     }
   }, [currentSrc, fallbackSrc, onError, imageUrl]);
 
-  const handleImageLoad = useCallback(() => {
-    if (!isMountedRef.current) return;
-    if (onLoad && !hasError) {
-      onLoad();
-    }
-  }, [onLoad, hasError]);
+  const handleImageLoad = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement>) => {
+      if (!isMountedRef.current) return;
+      if (
+        playbackColor &&
+        onColorsExtracted &&
+        !hasError &&
+        currentSrc !== fallbackSrc
+      ) {
+        try {
+          onColorsExtracted([extractPlaybackColor(event.currentTarget)]);
+        } catch (error) {
+          console.error("Could not extract playback color", error);
+        }
+      }
+      if (onLoad && !hasError) {
+        onLoad();
+      }
+    },
+    [
+      onLoad,
+      hasError,
+      playbackColor,
+      onColorsExtracted,
+      currentSrc,
+      fallbackSrc,
+    ],
+  );
 
   return (
     <img
