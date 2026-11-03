@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useGradientTransition } from "../../hooks/useGradientTransition";
+import { createPlaybackGradient } from "../../utils/playbackGradient";
 import classNames from "classnames";
 import type { GradientState } from "../../types";
 
@@ -37,7 +38,14 @@ const GradientBackground = ({
   }, [updateGradientColors, gradientState.imageURL, gradientState.section]);
 
   useEffect(() => {
-    const newCalculatedGradientCss = generateMeshGradient(gradientHexColors);
+    const newCalculatedGradientCss =
+      gradientState.section === "nowPlaying"
+        ? createPlaybackGradient(
+            Array.isArray(gradientState.imageURL)
+              ? gradientState.imageURL
+              : gradientHexColors,
+          )
+        : generateMeshGradient(gradientHexColors);
 
     const currentActiveLayer = gradientLayers.find(
       (l) => l.id === activeLayerId,
@@ -89,6 +97,8 @@ const GradientBackground = ({
     }
   }, [
     gradientHexColors,
+    gradientState.section,
+    gradientState.imageURL,
     generateMeshGradient,
     activeLayerId,
     initialMeshGradient,
