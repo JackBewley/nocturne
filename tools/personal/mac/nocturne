@@ -1,0 +1,99 @@
+#!/bin/bash
+set -euo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+repo=JackBewley/nocturne
+workflow=personal-nocturne.yml
+
+need_login() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo 'Install GitHub CLI first: brew install gh' >&2
+    exit 1
+  fi
+  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
+    echo 'One-time setup: gh auth login --hostname github.com --web' >&2
+    exit 1
+  fi
+}
+
+install_build() (
+  need_login
+  tag=$(gh release view --repo "$repo" --json tagName --jq '.tagName')
+  case "$tag" in
+    personal-v*) ;;
+    *) echo "Unexpected release: $tag. Nothing installed." >&2; exit 1 ;;
+  esac
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+  echo "Downloading $tag"
+  gh release download "$tag" --repo "$repo" --dir "$work" \
+    --pattern personal-ui-bundle.tar.gz --pattern SHA256SUMS
+  (cd "$work" && shasum -a 256 -c SHA256SUMS)
+  mkdir "$work/package"
+  tar -xzf "$work/personal-ui-bundle.tar.gz" -C "$work/package"
+  (cd "$work/package" && shasum -a 256 -c SHA256SUMS)
+  echo "Required Nocturne image: $(cat "$work/package/required-image-version.txt")"
+  echo 'Connecting to nocturne.local. The installer checks firmware and backs up the current UI.'
+  ssh -n root@nocturne.local 'mkdir -p /tmp/nocturne-personal-install'
+  scp "$work/package/"* root@nocturne.local:/tmp/nocturne-personal-install/
+  ssh -n root@nocturne.local 'sh /tmp/nocturne-personal-install/install-device.sh'
+)
+
+command_name=${1:-menu}
+if [ "$command_name" = menu ]; then
+  echo 'Nocturne tools'
+  echo '  1  Show releases, update PRs, and recent builds'
+  echo '  2  Check upstream for a new release now'
+  echo '  3  Open update PRs in GitHub'
+  echo '  4  Build/package the current personal branch'
+  echo '  5  Install the latest published custom UI'
+  echo '  6  Open GitHub build results'
+  echo '  7  Show the build installed on the device'
+  echo '  q  Quit'
+  read -r -p 'Choose: ' choice
+  case "$choice" in
+    1) command_name=status ;; 2) command_name=check ;;
+    3) command_name=updates ;; 4) command_name=build ;;
+    5) command_name=install ;; 6) command_name=actions ;;
+    7) command_name=device ;; q|Q|'') exit 0 ;;
+    *) echo 'Unknown choice.' >&2; exit 1 ;;
+  esac
+fi
+
+case "$command_name" in
+  status)
+    need_login
+    echo 'Latest official Nocturne release:'
+    gh release view --repo usenocturne/nocturne --json tagName,publishedAt,url
+    echo 'Latest published personal build:'
+    gh release view --repo "$repo" --json tagName,publishedAt,url
+    echo 'Open update PRs:'
+    gh pr list --repo "$repo" --base personal/nocturne --state open
+    echo 'Recent automation runs:'
+    gh run list --repo "$repo" --workflow "$workflow" --limit 5
+    ;;
+  check|build)
+    need_login
+    gh workflow run "$workflow" --repo "$repo" --ref main -f "mode=$command_name"
+    echo "Requested $command_name. This runs on GitHub; nothing is installed on the device."
+    echo "Results: https://github.com/$repo/actions/workflows/$workflow"
+    ;;
+  updates) open "https://github.com/$repo/pulls?q=is%3Apr+is%3Aopen+base%3Apersonal%2Fnocturne" ;;
+  actions) open "https://github.com/$repo/actions/workflows/$workflow" ;;
+  install) install_build ;;
+  device)
+    ssh -n root@nocturne.local '
+      . /etc/os-release
+      echo "Firmware: $VERSION_ID"
+      if [ -f /opt/nocturne/webapps/ui/personal-build.txt ]; then
+        cat /opt/nocturne/webapps/ui/personal-build.txt
+      elif [ -f /opt/nocturne/webapps/ui/playback-build.txt ]; then
+        cat /opt/nocturne/webapps/ui/playback-build.txt
+      else
+        echo "No custom build marker found."
+      fi'
+    ;;
+  help|--help|-h)
+    echo 'Usage: nocturne [menu|status|check|updates|build|install|actions|device]'
+    ;;
+  *) echo "Unknown command: $command_name" >&2; exit 1 ;;
+esac
