@@ -39,3 +39,41 @@ describe("playback color selection", () => {
     expect(css).not.toContain("transparent");
   });
 });
+
+describe("small artwork accents", () => {
+  test("a small gold logo on black stays gold instead of falling back to gray", () => {
+    const data = pixels([[8, 9, 8, 4096]]);
+    for (let y = 28; y < 36; y++) {
+      for (let x = 28; x < 36; x++)
+        data.set([129, 113, 51, 255], (y * 64 + x) * 4);
+    }
+    expect(selectPlaybackColor(data, 64)).toBe("#817133");
+  });
+  test("a coherent olive accent survives a larger brown photographic area", () => {
+    expect(
+      selectPlaybackColor(
+        pixels([
+          [65, 40, 25, 3900],
+          [150, 142, 95, 196],
+        ]),
+        64,
+      ),
+    ).toBe("#968e5f");
+  });
+  test("warm artwork without an alternative retains its own color", () => {
+    expect(selectPlaybackColor(pixels([[140, 90, 50, 4096]]), 64)).toBe(
+      "#8c5a32",
+    );
+  });
+  test("isolated colored noise on neutral art does not become the theme", () => {
+    expect(
+      selectPlaybackColor(
+        pixels([
+          [120, 120, 120, 4095],
+          [0, 255, 0, 1],
+        ]),
+        64,
+      ),
+    ).toBe("#787878");
+  });
+});

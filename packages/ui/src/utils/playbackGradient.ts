@@ -21,14 +21,20 @@ export function selectPlaybackColor(
   pixels: Uint8ClampedArray,
   width = 0,
 ): string {
-  const buckets = Array.from({ length: 24 }, () => ({
-    weight: 0,
-    r: 0,
-    g: 0,
-    b: 0,
-  }));
+  const makeBuckets = () =>
+    Array.from({ length: 36 }, () => ({
+      weight: 0,
+      colorWeight: 0,
+      r: 0,
+      g: 0,
+      b: 0,
+    }));
+  const allBuckets = makeBuckets();
+  const accentBuckets = makeBuckets();
+  let accentCount = 0;
   let graySum = 0,
-    count = 0;
+    count = 0,
+    chromaticCount = 0;
   for (let i = 0; i < pixels.length; i += 4) {
     if (pixels[i + 3] < 128) continue;
     const r = pixels[i] / 255,
@@ -39,6 +45,7 @@ export function selectPlaybackColor(
     count++;
     if (t.lightness < 0.07 || t.lightness > 0.9 || t.saturation < 0.12)
       continue;
+    chromaticCount++;
     const x = width ? (i / 4) % width : 0;
     const y = width ? Math.floor(i / 4 / width) : 0;
     const height = width ? pixels.length / 4 / width : 0;
@@ -48,44 +55,61 @@ export function selectPlaybackColor(
           Math.abs(((y + 0.5) / height) * 2 - 1),
         )
       : 0;
-    // Background colors near the artwork perimeter should outweigh central faces and lettering.
+    // Skin and brown shadows should not swamp a distinct artwork accent.
+    const skinTone = t.hue >= 15 && t.hue < 45 && t.saturation < 0.85;
     const weight =
       t.saturation *
       t.saturation *
-      (1 - t.lightness) ** 3 *
-      (0.15 + edge ** 4 * 4);
-    const bucket = buckets[Math.round(t.hue / 15) % 24];
-    bucket.weight += weight;
-    bucket.r += r * weight;
-    bucket.g += g * weight;
-    bucket.b += b * weight;
+      Math.min(1, t.lightness / 0.35) *
+      (1 - t.lightness) *
+      (0.75 + edge * 0.25);
+    const index = Math.round(t.hue / 10) % 36;
+    const colorWeight = weight * t.lightness ** 2;
+    if (!skinTone) accentCount++;
+    for (const bucket of skinTone
+      ? [allBuckets[index]]
+      : [allBuckets[index], accentBuckets[index]]) {
+      bucket.weight += weight;
+      bucket.colorWeight += colorWeight;
+      bucket.r += r * colorWeight;
+      bucket.g += g * colorWeight;
+      bucket.b += b * colorWeight;
+    }
   }
+  // A coherent accent may occupy only a small logo. Keep brown/orange when
+  // there is no meaningful alternative, rather than forcing a foreign hue.
+  const buckets =
+    accentCount >= Math.max(3, count * 0.005) ? accentBuckets : allBuckets;
   const ranked = buckets
     .map((bucket, index) => ({
       index,
       weight:
         bucket.weight +
-        buckets[(index + 23) % 24].weight +
-        buckets[(index + 1) % 24].weight,
+        buckets[(index + 35) % 36].weight +
+        buckets[(index + 1) % 36].weight,
     }))
     .sort((a, b) => b.weight - a.weight);
   const best = ranked[0];
   let rgb: number[];
-  if (!best || best.weight < Math.max(1, count * 0.015)) {
+  if (
+    !best ||
+    chromaticCount < Math.max(3, count * 0.003) ||
+    best.weight < 0.01
+  ) {
     const gray = count ? graySum / count : 0.14;
     rgb = [gray, gray, gray];
   } else {
     const group = [
-      buckets[(best.index + 23) % 24],
+      buckets[(best.index + 35) % 36],
       buckets[best.index],
-      buckets[(best.index + 1) % 24],
+      buckets[(best.index + 1) % 36],
     ];
     rgb = ["r", "g", "b"].map(
       (channel) =>
         group.reduce(
           (sum, bucket) => sum + bucket[channel as "r" | "g" | "b"],
           0,
-        ) / best.weight,
+        ) / group.reduce((sum, bucket) => sum + bucket.colorWeight, 0),
     );
   }
   return (

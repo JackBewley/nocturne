@@ -7,6 +7,7 @@ import type { GradientState } from "../../types";
 interface GradientBackgroundProps {
   gradientState?: GradientState;
   className?: string;
+  playback?: boolean;
 }
 
 const GradientBackground = ({
@@ -15,31 +16,40 @@ const GradientBackground = ({
     section: null,
   },
   className = "",
+  playback = false,
 }: GradientBackgroundProps) => {
+  const section = playback ? "nowPlaying" : gradientState.section;
   const {
     gradientHexColors,
     generateMeshGradient,
     updateGradientColors,
     gradientTransitionDurationMs,
     initialMeshGradient,
-  } = useGradientTransition(gradientState.section);
+  } = useGradientTransition(section);
 
   const [gradientLayers, setGradientLayers] = useState<
     Array<{ id: number; css: string | null; opacity: number }>
   >([
-    { id: 0, css: initialMeshGradient, opacity: 1 },
+    {
+      id: 0,
+      css:
+        section === "nowPlaying"
+          ? createPlaybackGradient([])
+          : initialMeshGradient,
+      opacity: 1,
+    },
     { id: 1, css: null, opacity: 0 },
   ]);
   const [activeLayerId, setActiveLayerId] = useState(0);
   const initialFadeSetupRef = useRef(false);
 
   useEffect(() => {
-    updateGradientColors(gradientState.imageURL, gradientState.section);
-  }, [updateGradientColors, gradientState.imageURL, gradientState.section]);
+    updateGradientColors(gradientState.imageURL, section);
+  }, [updateGradientColors, gradientState.imageURL, section]);
 
   useEffect(() => {
     const newCalculatedGradientCss =
-      gradientState.section === "nowPlaying"
+      section === "nowPlaying"
         ? createPlaybackGradient(
             Array.isArray(gradientState.imageURL)
               ? gradientState.imageURL
@@ -97,7 +107,7 @@ const GradientBackground = ({
     }
   }, [
     gradientHexColors,
-    gradientState.section,
+    section,
     gradientState.imageURL,
     generateMeshGradient,
     activeLayerId,

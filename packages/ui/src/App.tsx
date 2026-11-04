@@ -1994,6 +1994,7 @@ function AppContent() {
             <Router>
               <main className="overflow-hidden relative min-h-screen rounded-2xl nocturne-font-stack">
                 <GradientBackground
+                  playback={activeSection === "nowPlaying"}
                   gradientState={gradientState}
                   className="bg-black"
                 />
