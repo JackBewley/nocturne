@@ -1,3 +1,6 @@
+import { useSpotifyWebSocket } from "../../hooks/useSpotifyWebSocket";
+import { useSpotifyPalette } from "../../hooks/useSpotifyPalette";
+import { spotifyPaletteGradient } from "../../utils/spotifyPalette";
 import { useEffect, useState, useRef } from "react";
 import { useGradientTransition } from "../../hooks/useGradientTransition";
 import { createPlaybackGradient } from "../../utils/playbackGradient";
@@ -8,6 +11,8 @@ interface GradientBackgroundProps {
   gradientState?: GradientState;
   className?: string;
   playback?: boolean;
+  spotifyTrackUri?: string | null;
+  spotifyArtworkUrl?: string | null;
 }
 
 const GradientBackground = ({
@@ -17,7 +22,16 @@ const GradientBackground = ({
   },
   className = "",
   playback = false,
+  spotifyTrackUri = null,
+  spotifyArtworkUrl = null,
 }: GradientBackgroundProps) => {
+  const { fetchImage, isSpotifyReady } = useSpotifyWebSocket();
+  const spotifyPalette = useSpotifyPalette(
+    playback ? spotifyTrackUri : null,
+    spotifyArtworkUrl,
+    fetchImage,
+    isSpotifyReady,
+  );
   const section = playback ? "nowPlaying" : gradientState.section;
   const {
     gradientHexColors,
@@ -50,11 +64,13 @@ const GradientBackground = ({
   useEffect(() => {
     const newCalculatedGradientCss =
       section === "nowPlaying"
-        ? createPlaybackGradient(
-            Array.isArray(gradientState.imageURL)
-              ? gradientState.imageURL
-              : gradientHexColors,
-          )
+        ? spotifyPalette
+          ? spotifyPaletteGradient(spotifyPalette)
+          : createPlaybackGradient(
+              Array.isArray(gradientState.imageURL)
+                ? gradientState.imageURL
+                : gradientHexColors,
+            )
         : generateMeshGradient(gradientHexColors);
 
     const currentActiveLayer = gradientLayers.find(
@@ -107,6 +123,7 @@ const GradientBackground = ({
     }
   }, [
     gradientHexColors,
+    spotifyPalette,
     section,
     gradientState.imageURL,
     generateMeshGradient,

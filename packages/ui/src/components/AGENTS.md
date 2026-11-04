@@ -124,3 +124,5 @@ A terminal artwork failure is scoped to the current Spotify readiness period. Wh
 Now Playing background experiment: `GradientBackground` uses `utils/playbackGradient.ts` for an opaque, low-contrast vertical artwork tint when section is `nowPlaying` or App explicitly marks the active screen as playback. Playback initializes with the neutral vertical gradient; asynchronous section callbacks must not switch the active player to mesh presentation. Other sections retain the mesh gradient.
 
 `SpotifyImage.playbackColor` samples the successfully loaded image for Now Playing. Keep the existing `extractColors` path for other screens.
+
+Spotify palette experiment: `GradientBackground` prefers validated Spotify `backgroundBase`/`backgroundTintedBase` for playback and retains the artwork gradient as fallback. App supplies the current ordinary Spotify track URI and artwork; never let artwork callbacks override a valid Spotify palette.

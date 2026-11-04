@@ -1995,6 +1995,16 @@ function AppContent() {
               <main className="overflow-hidden relative min-h-screen rounded-2xl nocturne-font-stack">
                 <GradientBackground
                   playback={activeSection === "nowPlaying"}
+                  spotifyTrackUri={
+                    currentPlayback?.item?.is_phone_media ||
+                    currentPlayback?.item?.is_local ||
+                    currentPlayback?.item?.is_spotify_pending
+                      ? null
+                      : currentPlayback?.item?.uri
+                  }
+                  spotifyArtworkUrl={
+                    currentPlayback?.item?.album?.images?.[0]?.url ?? null
+                  }
                   gradientState={gradientState}
                   className="bg-black"
                 />
