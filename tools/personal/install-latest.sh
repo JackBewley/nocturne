@@ -10,6 +10,6 @@ curl -fLsS "$base/SHA256SUMS" -o "$work/SHA256SUMS"
 mkdir "$work/package"
 tar -xzf "$work/personal-ui-bundle.tar.gz" -C "$work/package"
 (cd "$work/package" && shasum -a 256 -c SHA256SUMS)
-ssh root@nocturne.local 'mkdir -p /tmp/nocturne-personal-install'
+ssh -n root@nocturne.local 'mkdir -p /tmp/nocturne-personal-install'
 scp "$work/package/"* root@nocturne.local:/tmp/nocturne-personal-install/
-ssh root@nocturne.local 'sh /tmp/nocturne-personal-install/install-device.sh'
+ssh -n root@nocturne.local 'sh /tmp/nocturne-personal-install/install-device.sh'
