@@ -76,7 +76,8 @@ def main():
     (out / "SHA256SUMS").write_text(f"{digest(out / 'personal-ui-bundle.tar.gz')}  personal-ui-bundle.tar.gz\n")
     (out / "RELEASE.md").write_text(
         f"Personal UI built from `{sha}`. Includes Minimal Clock and Spotify palette backgrounds.\n\n"
-        f"Upstream baseline: {config['upstreamTag']}. Required Nocturne image: **{config['requiredImageVersion']}**.\n\n"
+        f"Upstream baseline: {config['upstreamTag']}. Base image target: **{config['requiredImageVersion']}**.\n\n"
+        "For v4.1.10, image 4.1.9 is also accepted with a complete installed v4.1.10 component overlay.\n\n"
         "UI-only package. Does not install firmware or a daemon. Keep Nocturne Automatic Updates off.\n\n"
         "Run on your Mac:\n```sh\n"
         "curl -fsSL https://raw.githubusercontent.com/JackBewley/nocturne/personal/nocturne/tools/personal/install-latest.sh | bash\n"

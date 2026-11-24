@@ -20,10 +20,10 @@ GitHub must have Actions enabled and **Allow GitHub Actions to create and approv
 
 ## v4.1.10 compatibility review
 
-The personal build merges official tag v4.1.10 and requires image 4.1.10.
+The personal build merges official tag v4.1.10. It accepts image 4.1.10, or image 4.1.9 with the installed v4.1.10 component overlay (including numeric build suffixes). The overlay marker, daemon, and UI entry must all be regular files, matching upstream version detection.
 The upstream delta does not change shared wire contracts or the palette transport.
 All 17 custom UI source files are unchanged from personal commit 55f8140.
 Verification: 442 UI tests, 9 automation tests, and the production UI build pass.
-Hardware verification remains pending. Install official firmware v4.1.10 first,
+The user confirmed image 4.1.9 with component version 4.1.10+20261124001143. Custom UI installation verification remains pending. Install the official v4.1.10 update first,
 then the matching personal UI bundle. Mac Connector v2.1.7 ships as version 1.0,
 build 300. Keep automatic firmware updates disabled after installation.

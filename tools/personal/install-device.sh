@@ -3,10 +3,34 @@ set -eu
 cd "$(dirname "$0")"
 . /etc/os-release
 expected_version=$(cat required-image-version.txt)
-[ "$ID" = nocturne ] && [ "$VERSION_ID" = "$expected_version" ] || {
-  echo "This UI requires Nocturne image $expected_version. Found $ID $VERSION_ID. Nothing installed."
+# Nocturne reports the rootfs image separately from hot component updates.
+# This exception is reviewed only for the v4.1.10 UI on the v4.1.9 base.
+overlay=/var/lib/bandaid/nocturne
+component_version=
+overlay_active=true
+for file in "$overlay/.floor-version" "$overlay/daemon/nocturned.current" "$overlay/webapps/ui/index.html"; do
+  if [ ! -f "$file" ] || [ -L "$file" ]; then
+    overlay_active=false
+  fi
+done
+if [ "$overlay_active" = true ]; then
+  component_version=$(cat "$overlay/.floor-version")
+fi
+compatible=false
+if [ "$ID" = nocturne ]; then
+  if [ "$VERSION_ID" = "$expected_version" ]; then
+    compatible=true
+  elif [ "$expected_version" = 4.1.10 ] && [ "$VERSION_ID" = 4.1.9 ]; then
+    if printf '%s\n' "$component_version" | grep -Eq '^4\.1\.10(\+[0-9]+)?$'; then
+      compatible=true
+    fi
+  fi
+fi
+[ "$compatible" = true ] || {
+  echo "Unsupported combination: $ID image $VERSION_ID, components ${component_version:-unavailable}, UI target $expected_version. Nothing installed."
   exit 1
 }
+echo "Verified compatibility: image $VERSION_ID, components ${component_version:-image default}, UI target $expected_version"
 sha256sum -c SHA256SUMS >/dev/null
 ui=/opt/nocturne/webapps/ui
 test -f "$ui/index.html"
