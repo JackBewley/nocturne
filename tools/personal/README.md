@@ -17,3 +17,13 @@ curl -fsSL https://raw.githubusercontent.com/JackBewley/nocturne/personal/noctur
 The script downloads the latest personal release, verifies checksums, copies it to `nocturne.local`, checks the exact image version, backs up the existing UI under `/var/lib`, installs the UI, and verifies the served build marker. A mismatch stops before changing the UI. Install a required official firmware/daemon update separately before applying a matching custom UI. Keep **Software Update > Update Settings > Automatic Updates** off on the device. The installer does not alter this setting.
 
 GitHub must have Actions enabled and **Allow GitHub Actions to create and approve pull requests** enabled (the workflow only creates PRs, never approves or merges them). Default token permissions can stay read-only. Subscribe to this fork's PRs/releases for notifications. GitHub may pause scheduled workflows in public repositories after 60 days without repository activity; re-enable from Actions if that happens. Scheduled runs are best effort, not an exact-time guarantee.
+
+## v4.1.10 compatibility review
+
+The personal build merges official tag v4.1.10 and requires image 4.1.10.
+The upstream delta does not change shared wire contracts or the palette transport.
+All 17 custom UI source files are unchanged from personal commit 55f8140.
+Verification: 442 UI tests, 9 automation tests, and the production UI build pass.
+Hardware verification remains pending. Install official firmware v4.1.10 first,
+then the matching personal UI bundle. Mac Connector v2.1.7 ships as version 1.0,
+build 300. Keep automatic firmware updates disabled after installation.
